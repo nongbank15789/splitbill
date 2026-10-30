@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints
 
@@ -25,7 +25,7 @@ class ExpenseCreate(BaseModel):
     ]
     paid_by: Text
     amount: str  # money travels as a string, never as a float
-    split: Annotated[Union[EqualSplitIn, ExactSplitIn], Field(discriminator="type")]
+    split: Annotated[EqualSplitIn | ExactSplitIn, Field(discriminator="type")]
 
 
 class ShareOut(BaseModel):

@@ -16,8 +16,7 @@ class SplitStrategy(ABC):
     """แม่แบบ: ทุกวิธีแบ่งเงินต้องมี calculate()"""
 
     @abstractmethod
-    def calculate(self, amount: Decimal) -> dict[str, Decimal]:
-        ...
+    def calculate(self, amount: Decimal) -> dict[str, Decimal]: ...
 
 
 class EqualSplit(SplitStrategy):

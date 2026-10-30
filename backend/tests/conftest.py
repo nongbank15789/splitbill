@@ -37,7 +37,5 @@ def migrated_db():
 def client(migrated_db):
     """A test client with an empty expense table (users and groups stay seeded)."""
     with engine.begin() as conn:
-        conn.execute(
-            text("TRUNCATE expense_shares, expenses RESTART IDENTITY CASCADE")
-        )
+        conn.execute(text("TRUNCATE expense_shares, expenses RESTART IDENTITY CASCADE"))
     return TestClient(app)

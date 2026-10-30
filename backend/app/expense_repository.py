@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -29,7 +29,7 @@ class ExpenseRepository:
             # The database enforces uniqueness, so this also holds when two
             # requests with the same key arrive at the same time.
             if key is not None and self.find_by_idempotency_key(group_id, key):
-                raise DuplicateExpenseError()
+                raise DuplicateExpenseError() from None
             raise
         self._session.refresh(expense)
         return expense
@@ -62,7 +62,7 @@ class ExpenseRepository:
 
     def soft_delete(self, expense: Expense) -> None:
         expense.is_deleted = True
-        expense.deleted_at = datetime.now(timezone.utc)
+        expense.deleted_at = datetime.now(UTC)
         self._session.commit()
 
     def total_paid_by_user(self, group_id: int) -> dict[int, Decimal]:

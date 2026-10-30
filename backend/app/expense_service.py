@@ -39,7 +39,7 @@ class ExpenseService:
         try:
             amount = parse_amount(data.amount)
         except InvalidAmountError as error:
-            raise InvalidRequestError(str(error))
+            raise InvalidRequestError(str(error)) from None
 
         if data.paid_by not in members:
             raise InvalidRequestError("The payer is not a member of this group")
@@ -110,13 +110,13 @@ class ExpenseService:
                 try:
                     parsed[name] = parse_amount(text)
                 except InvalidAmountError as error:
-                    raise InvalidRequestError(f"Share of {name}: {error}")
+                    raise InvalidRequestError(f"Share of {name}: {error}") from None
             strategy = ExactSplit(parsed)
 
         try:
             return strategy.calculate(amount)
         except SplitError as error:
-            raise InvalidRequestError(str(error))
+            raise InvalidRequestError(str(error)) from None
 
     @staticmethod
     def _ensure_members(names: list[str], members) -> None:

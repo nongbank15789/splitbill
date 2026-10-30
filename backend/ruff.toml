@@ -1,0 +1,17 @@
+line-length = 88
+target-version = "py312"
+# ไฟล์ migration ใน versions/ เครื่องมือสร้างให้เอง จึงไม่ตรวจ
+extend-exclude = ["migrations/versions"]
+
+[lint]
+select = ["E", "F", "I", "B", "UP"]
+# ตัวจัดรูปแบบ (ruff format) ดูแลความยาวบรรทัดให้อยู่แล้ว
+ignore = ["E501"]
+
+[lint.per-file-ignores]
+# env.py ต้อง import model หลังตั้งค่า config จึงยกเว้นกฎเหล่านี้
+"migrations/env.py" = ["E402", "F401"]
+
+[lint.flake8-bugbear]
+# บอก Ruff ว่า Depends/Header ของ FastAPI ใช้เป็นค่าเริ่มต้นได้
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header"]

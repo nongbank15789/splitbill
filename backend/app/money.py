@@ -11,12 +11,12 @@ class InvalidAmountError(ValueError):
 def parse_amount(text) -> Decimal:
     """แปลงข้อความเป็นจำนวนเงิน หรือโยน error ถ้าไม่ถูกกฎ"""
     if not isinstance(text, str):
-        raise InvalidAmountError("Amount must be sent as a string, e.g. \"1000.00\"")
+        raise InvalidAmountError('Amount must be sent as a string, e.g. "1000.00"')
 
     try:
         amount = Decimal(text.strip())
     except InvalidOperation:
-        raise InvalidAmountError("Amount is not a valid number")
+        raise InvalidAmountError("Amount is not a valid number") from None
 
     if not amount.is_finite():
         raise InvalidAmountError("Amount is not a valid number")

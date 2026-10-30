@@ -76,9 +76,7 @@ class ExpenseShare(Base):
         CheckConstraint("amount >= 0", name="ck_share_amount_non_negative"),
     )
 
-    expense_id: Mapped[int] = mapped_column(
-        ForeignKey("expenses.id"), primary_key=True
-    )
+    expense_id: Mapped[int] = mapped_column(ForeignKey("expenses.id"), primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
 
