@@ -3,11 +3,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.errors import AppError
-from app.routers import expenses, groups
+from app.routers import balances, expenses, groups
 
 app = FastAPI(title="SplitBill")
 app.include_router(groups.router)
 app.include_router(expenses.router)
+app.include_router(balances.router)
 
 
 def error_response(status: int, code: str, message: str) -> JSONResponse:

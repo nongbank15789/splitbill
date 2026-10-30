@@ -55,6 +55,17 @@ class ExpenseOut(BaseModel):
             created_at=expense.created_at,
             shares=[
                 ShareOut(username=s.user.username, amount=s.amount)
-                for s in expense.shares
+                for s in sorted(expense.shares, key=lambda s: s.user_id)
             ],
         )
+
+
+class BalanceOut(BaseModel):
+    username: str
+    balance: Decimal  # positive = the group owes this member
+
+
+class BalancesOut(BaseModel):
+    group_id: int
+    balances: list[BalanceOut]
+    total: Decimal  # always 0.00 when the books are consistent

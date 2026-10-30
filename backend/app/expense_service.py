@@ -1,16 +1,18 @@
 from decimal import Decimal
 
-from app.errors import InvalidRequestError
-from app.expense_repository import ExpenseRepository
+from app.errors import ForbiddenError, InvalidRequestError, NotFoundError
+from app.expense_repository import DuplicateExpenseError, ExpenseRepository
 from app.expense_schemas import EqualSplitIn, ExpenseCreate
-from app.models import Expense, ExpenseShare, User
+from app.models import Expense, ExpenseShare, Group, User
 from app.money import TWO_PLACES, InvalidAmountError, parse_amount
 from app.services import GroupService
 from app.splitting import EqualSplit, ExactSplit, SplitError, SplitStrategy
 
+ZERO = Decimal("0.00")
+
 
 class ExpenseService:
-    """Business rules for recording expenses."""
+    """Business rules for recording, listing and deleting expenses."""
 
     def __init__(self, groups: GroupService, repo: ExpenseRepository):
         self._groups = groups
@@ -22,8 +24,16 @@ class ExpenseService:
         group_id: int,
         data: ExpenseCreate,
         idempotency_key: str | None,
-    ) -> Expense:
+    ) -> tuple[Expense, bool]:
+        """Return (expense, created). created is False for an idempotent replay."""
         group = self._groups.get_group_for_member(user, group_id)
+        key = (idempotency_key or "").strip() or None
+
+        if key:
+            existing = self._repo.find_by_idempotency_key(group.id, key)
+            if existing is not None:
+                return existing, False
+
         members = {m.username: m for m in group.members}
 
         try:
@@ -42,7 +52,7 @@ class ExpenseService:
             description=data.description,
             amount=amount,
             split_type=data.split.type,
-            idempotency_key=idempotency_key,
+            idempotency_key=key,
             shares=[
                 ExpenseShare(
                     user_id=members[name].id, amount=share.quantize(TWO_PLACES)
@@ -50,7 +60,40 @@ class ExpenseService:
                 for name, share in shares.items()
             ],
         )
-        return self._repo.save(expense)
+        try:
+            return self._repo.add(expense), True
+        except DuplicateExpenseError:
+            # Lost a race against a concurrent request with the same key.
+            winner = self._repo.find_by_idempotency_key(group.id, key)
+            return winner, False
+
+    def list_expenses(self, user: User, group_id: int) -> list[Expense]:
+        group = self._groups.get_group_for_member(user, group_id)
+        return self._repo.list_active(group.id)
+
+    def delete_expense(self, user: User, group_id: int, expense_id: int) -> None:
+        group = self._groups.get_group_for_member(user, group_id)
+        expense = self._repo.get_active(group.id, expense_id)
+        if expense is None:
+            raise NotFoundError("Expense not found")
+        if expense.paid_by_id != user.id:
+            raise ForbiddenError("Only the payer can delete this expense")
+        self._repo.soft_delete(expense)
+
+    def get_balances(
+        self, user: User, group_id: int
+    ) -> tuple[Group, list[tuple[str, Decimal]]]:
+        group = self._groups.get_group_for_member(user, group_id)
+        paid = self._repo.total_paid_by_user(group.id)
+        owed = self._repo.total_owed_by_user(group.id)
+        balances = [
+            (
+                m.username,
+                (paid.get(m.id, ZERO) - owed.get(m.id, ZERO)).quantize(TWO_PLACES),
+            )
+            for m in group.members
+        ]
+        return group, balances
 
     def _calculate_shares(self, members, amount: Decimal, split) -> dict[str, Decimal]:
         strategy: SplitStrategy
