@@ -17,3 +17,10 @@ class UnauthorizedError(AppError):
 class NotFoundError(AppError):
     status_code = 404
     code = "not_found"
+
+
+class InvalidRequestError(AppError):
+    """The request is well-formed JSON but breaks a business rule."""
+
+    status_code = 422
+    code = "invalid_request"
