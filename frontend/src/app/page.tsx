@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 
+import ExpenseForm from "@/components/ExpenseForm";
 import {
   USERS,
   getGroup,
@@ -17,6 +18,7 @@ export default function Home() {
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Only the newest request may update the screen (guards against slow replies).
   const latest = useRef(0);
@@ -27,6 +29,7 @@ export default function Home() {
     setGroups([]);
     setGroup(null);
     setError(null);
+    setNotice(null);
     setLoading(false);
     if (!next) return;
 
@@ -45,6 +48,7 @@ export default function Home() {
     const ticket = ++latest.current;
     setGroup(null);
     setError(null);
+    setNotice(null);
     setLoading(true);
     try {
       const result = await getGroup(user, groupId);
@@ -80,7 +84,10 @@ export default function Home() {
       </section>
 
       {error && (
-        <p role="alert" className="rounded border border-red-400 bg-red-50 p-3 text-red-800">
+        <p
+          role="alert"
+          className="rounded border border-red-400 bg-red-50 p-3 text-red-800"
+        >
           {error}
         </p>
       )}
@@ -114,10 +121,28 @@ export default function Home() {
       )}
 
       {group && (
-        <section className="space-y-1">
-          <h2 className="text-lg font-semibold">{group.name}</h2>
-          <p>Members: {group.members.map((m) => m.username).join(", ")}</p>
-        </section>
+        <>
+          <section className="space-y-1">
+            <h2 className="text-lg font-semibold">{group.name}</h2>
+            <p>Members: {group.members.map((m) => m.username).join(", ")}</p>
+          </section>
+
+          {notice && (
+            <p
+              role="status"
+              className="rounded border border-green-600 bg-green-50 p-3 text-green-800"
+            >
+              {notice}
+            </p>
+          )}
+
+          <ExpenseForm
+            key={`${user}-${group.id}`}
+            user={user}
+            group={group}
+            onCreated={() => setNotice("Expense added")}
+          />
+        </>
       )}
     </main>
   );
