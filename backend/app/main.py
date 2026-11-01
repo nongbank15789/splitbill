@@ -1,11 +1,19 @@
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import settings
 from app.errors import AppError
 from app.routers import balances, expenses, groups
 
 app = FastAPI(title="SplitBill")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["X-User", "Idempotency-Key", "Content-Type"],
+)
 app.include_router(groups.router)
 app.include_router(expenses.router)
 app.include_router(balances.router)
