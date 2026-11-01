@@ -42,3 +42,8 @@ export function friendlyMessage(raw: string, code?: string): string {
   }
   return text;
 }
+
+/** Message to show for anything thrown while talking to the backend. */
+export function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Something went wrong";
+}
