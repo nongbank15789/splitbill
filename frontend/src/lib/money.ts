@@ -59,3 +59,13 @@ export function splitEqual(totalSatang: number, count: number): number[] {
 export function sumSatang(values: number[]): number {
   return values.reduce((total, value) => total + value, 0);
 }
+
+export function satangFromApi(text: string): number {
+  const match = /^(-?)(\d+)(?:\.(\d{1,2}))?$/.exec(text.trim());
+  if (!match) {
+    throw new Error(`Unexpected amount from the server: ${text}`);
+  }
+  const satang =
+    Number(match[2]) * 100 + Number((match[3] ?? "").padEnd(2, "0"));
+  return match[1] === "-" && satang !== 0 ? -satang : satang;
+}

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { formatMoney, parseMoney, splitEqual, sumSatang } from "./money";
+import {
+  formatMoney,
+  parseMoney,
+  satangFromApi,
+  splitEqual,
+  sumSatang,
+} from "./money";
 
 function satangOf(text: string): number {
   const result = parseMoney(text);
@@ -62,5 +68,19 @@ describe("formatMoney", () => {
     expect(0.1 + 0.2).not.toBe(0.3); // plain JavaScript gets this wrong
     const total = sumSatang([satangOf("0.1"), satangOf("0.2")]);
     expect(formatMoney(total)).toBe("0.30");
+  });
+});
+describe("satangFromApi", () => {
+  it("reads the decimals the backend sends, including negatives", () => {
+    expect(satangFromApi("1000.00")).toBe(100000);
+    expect(satangFromApi("666.66")).toBe(66666);
+    expect(satangFromApi("-333.33")).toBe(-33333);
+    expect(satangFromApi("0.00")).toBe(0);
+    expect(satangFromApi("-0.00")).toBe(0);
+  });
+
+  it("refuses anything that is not a plain decimal", () => {
+    expect(() => satangFromApi("abc")).toThrow();
+    expect(() => satangFromApi("1.234")).toThrow();
   });
 });
