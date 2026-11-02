@@ -2,11 +2,18 @@
 
 import { useRef, useState } from "react";
 
+import BalanceList from "@/components/BalanceList";
 import ExpenseForm from "@/components/ExpenseForm";
+import ExpenseList from "@/components/ExpenseList";
 import {
   USERS,
+  deleteExpense,
+  getBalances,
   getGroup,
+  listExpenses,
   listGroups,
+  type Balances,
+  type Expense,
   type Group,
   type GroupDetail,
 } from "@/lib/api";
@@ -16,6 +23,8 @@ export default function Home() {
   const [user, setUser] = useState("");
   const [groups, setGroups] = useState<Group[]>([]);
   const [group, setGroup] = useState<GroupDetail | null>(null);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [balances, setBalances] = useState<Balances | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -23,11 +32,17 @@ export default function Home() {
   // Only the newest request may update the screen (guards against slow replies).
   const latest = useRef(0);
 
+  function clearGroup() {
+    setGroup(null);
+    setExpenses([]);
+    setBalances(null);
+  }
+
   async function chooseUser(next: string) {
     const ticket = ++latest.current;
     setUser(next);
     setGroups([]);
-    setGroup(null);
+    clearGroup();
     setError(null);
     setNotice(null);
     setLoading(false);
@@ -46,18 +61,63 @@ export default function Home() {
 
   async function chooseGroup(groupId: number) {
     const ticket = ++latest.current;
-    setGroup(null);
+    clearGroup();
     setError(null);
     setNotice(null);
     setLoading(true);
     try {
-      const result = await getGroup(user, groupId);
-      if (ticket === latest.current) setGroup(result);
+      const [detail, list, summary] = await Promise.all([
+        getGroup(user, groupId),
+        listExpenses(user, groupId),
+        getBalances(user, groupId),
+      ]);
+      if (ticket === latest.current) {
+        setGroup(detail);
+        setExpenses(list);
+        setBalances(summary);
+      }
     } catch (e) {
       if (ticket === latest.current) setError(errorMessage(e));
     } finally {
       if (ticket === latest.current) setLoading(false);
     }
+  }
+
+  /** Reload the expense list and the balances of the open group. */
+  async function refresh() {
+    if (!group) return;
+    const ticket = ++latest.current;
+    try {
+      const [list, summary] = await Promise.all([
+        listExpenses(user, group.id),
+        getBalances(user, group.id),
+      ]);
+      if (ticket === latest.current) {
+        setExpenses(list);
+        setBalances(summary);
+      }
+    } catch (e) {
+      if (ticket === latest.current) setError(errorMessage(e));
+    }
+  }
+
+  async function afterCreate() {
+    setError(null);
+    setNotice("Expense added");
+    await refresh();
+  }
+
+  async function removeExpense(expenseId: number) {
+    if (!group) return;
+    setError(null);
+    setNotice(null);
+    try {
+      await deleteExpense(user, group.id, expenseId);
+      setNotice("Expense deleted");
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+    await refresh();
   }
 
   return (
@@ -136,11 +196,19 @@ export default function Home() {
             </p>
           )}
 
+          {balances && <BalanceList balances={balances} />}
+
           <ExpenseForm
             key={`${user}-${group.id}`}
             user={user}
             group={group}
-            onCreated={() => setNotice("Expense added")}
+            onCreated={afterCreate}
+          />
+
+          <ExpenseList
+            expenses={expenses}
+            user={user}
+            onDelete={removeExpense}
           />
         </>
       )}
